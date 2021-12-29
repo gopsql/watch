@@ -2,6 +2,7 @@ package watch
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -30,13 +31,24 @@ type watch struct {
 	output    string
 }
 
-// NewWatch creates new watch instance, watches go files in "directory"
-// recursively and build executable to "output" file.
-func NewWatch(directory, output string) *watch {
-	return &watch{
-		directory: directory,
-		output:    output,
-	}
+// NewWatch creates new watch instance, watches go files recursively in current
+// directory. If any .go and .mod files changed, executes the go build command
+// and then the newly built executable.
+func NewWatch() *watch {
+	return &watch{}
+}
+
+// InDirectory sets different directory to watch other than current directory.
+func (w *watch) InDirectory(directory string) *watch {
+	w.directory = directory
+	return w
+}
+
+// WithOutput sets different output file name of go build. Defaults to the name
+// of current directory.
+func (w *watch) WithOutput(output string) *watch {
+	w.output = output
+	return w
 }
 
 // WithGoPath sets path to the "go" executable.
@@ -64,7 +76,11 @@ func (w *watch) Do() error {
 		return err
 	}
 
-	output, err := filepath.Abs(w.output)
+	output := w.output
+	if output == "" {
+		output = defaultExecName(directory)
+	}
+	output, err = filepath.Abs(output)
 	if err != nil {
 		return err
 	}
@@ -156,4 +172,25 @@ func (w *watch) Do() error {
 		}
 	}
 	return nil
+}
+
+func defaultExecName(p string) string {
+	_, elem := path.Split(p)
+	if isVersionElement(elem) {
+		_, elem = path.Split(path.Dir(p))
+	}
+	return elem
+}
+
+// from go/src/cmd/go/internal/load/pkg.go
+func isVersionElement(s string) bool {
+	if len(s) < 2 || s[0] != 'v' || s[1] == '0' || s[1] == '1' && len(s) == 2 {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		if s[i] < '0' || '9' < s[i] {
+			return false
+		}
+	}
+	return true
 }
