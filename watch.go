@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"bufio"
 	"os"
 	"path"
 	"path/filepath"
@@ -26,6 +27,7 @@ type watch struct {
 	goPath      string        // defaults to "go"
 	goBuildArgs []string      // extra arguments to go build
 	logger      logger.Logger // no logger by default
+	rebuildKey  byte
 
 	directory string
 	output    string
@@ -66,6 +68,12 @@ func (w *watch) WithGoBuildArgs(args ...string) *watch {
 // WithLogger sets the logger.
 func (w *watch) WithLogger(logger logger.Logger) *watch {
 	w.logger = logger
+	return w
+}
+
+// WithRebuildKey sets rebuild key.
+func (w *watch) WithRebuildKey(key byte) *watch {
+	w.rebuildKey = key
 	return w
 }
 
@@ -111,6 +119,21 @@ func (w *watch) Do() error {
 	})
 	if err := wa.AddRecursive(directory); err != nil {
 		return err
+	}
+
+	if w.rebuildKey > 0 {
+		if w.logger != nil {
+			w.logger.Info("Enter", logger.CyanString([]byte{w.rebuildKey}), "to rebuild")
+		}
+		go func() {
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
+				b := scanner.Bytes()
+				if len(b) == 1 && b[0] == w.rebuildKey {
+					wa.TriggerEvent(watcher.Create, nil)
+				}
+			}
+		}()
 	}
 
 	go wa.TriggerEvent(watcher.Create, nil)

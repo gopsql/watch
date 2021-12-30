@@ -7,5 +7,5 @@ import (
 
 func main() {
 	logger := logger.StandardLogger
-	logger.Fatal(watch.NewWatch().WithLogger(logger).Do())
+	logger.Fatal(watch.NewWatch().WithLogger(logger).WithRebuildKey('r').Do())
 }
