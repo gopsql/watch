@@ -1,6 +1,7 @@
 # watch
 
-Watch and build go projects.
+Watch .go and .mod files, run `go build` command and the newly built executable
+if these files changed.
 
 ```go
 import "github.com/gopsql/logger"
