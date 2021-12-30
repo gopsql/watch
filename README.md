@@ -18,3 +18,12 @@ Install:
 ```
 go install -v github.com/gopsql/watch/gow@latest
 ```
+
+Run:
+
+```
+gow
+
+# with extra go build arguments:
+gow -- -v -race -o another-name
+```

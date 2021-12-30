@@ -78,6 +78,15 @@ func (w *watch) WithRebuildKey(key byte) *watch {
 	return w
 }
 
+// MustDo is like Do, but panics if operation fails.
+func (w *watch) MustDo() {
+	if w.logger != nil {
+		w.logger.Fatal(w.Do())
+	} else {
+		panic(w.Do())
+	}
+}
+
 // Do starts the watch process.
 func (w *watch) Do() error {
 	directory, err := filepath.Abs(w.directory)
