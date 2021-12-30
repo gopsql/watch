@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,6 +120,10 @@ func (w *watch) Do() error {
 	})
 	if err := wa.AddRecursive(directory); err != nil {
 		return err
+	}
+
+	if w.logger != nil {
+		w.logger.Info("Watching", logger.CyanString(strconv.Itoa(len(wa.WatchedFiles()))), "files")
 	}
 
 	if w.rebuildKey > 0 {

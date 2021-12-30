@@ -10,3 +10,11 @@ import "github.com/gopsql/watch"
 logger := logger.StandardLogger
 logger.Fatal(watch.NewWatch().WithLogger(logger).Do())
 ```
+
+## gow command
+
+Install:
+
+```
+go install -v github.com/gopsql/watch/gow@latest
+```
