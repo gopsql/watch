@@ -2,6 +2,7 @@ package watch
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -217,9 +218,11 @@ func (w *watch) Do() error {
 			if w.logger != nil {
 				w.logger.Info(logger.CyanString("Building..."))
 			}
+			begin := time.Now()
 			if build.Run(true) == nil {
+				spent := time.Now().Sub(begin).Truncate(time.Millisecond)
 				if w.logger != nil {
-					w.logger.Info(logger.GreenBoldString("Build finished"))
+					w.logger.Info(logger.GreenBoldString(fmt.Sprintf("Build finished (%s)", spent)))
 				}
 				app.Run(false)
 			}
