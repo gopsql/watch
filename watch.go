@@ -28,6 +28,7 @@ type watch struct {
 	goPath      string        // defaults to "go"
 	goBuildArgs []string      // extra arguments to go build
 	logger      logger.Logger // no logger by default
+	ignoreDirs  []string
 	rebuildKey  byte
 
 	directory string
@@ -39,6 +40,18 @@ type watch struct {
 // and then the newly built executable.
 func NewWatch() *watch {
 	return &watch{}
+}
+
+// IgnoreDirectory adds directory name to directory ignore list. Ignore
+// directories without go files could reduce CPU usage.
+func (w *watch) IgnoreDirectory(dirs ...string) *watch {
+	for _, dir := range dirs {
+		if dir == "" {
+			continue
+		}
+		w.ignoreDirs = appendStringIfMissing(w.ignoreDirs, dir)
+	}
+	return w
 }
 
 // InDirectory sets different directory to watch other than current directory.
@@ -119,13 +132,21 @@ func (w *watch) Do() error {
 	tidy := newRunner(goPath, "mod", "tidy")
 	tidy.SetWriter(os.Stdout)
 
+	dirsToIgnore := dirsWithName(directory, w.ignoreDirs...)
+
 	wa := watcher.New()
 	wa.SetMaxEvents(1)
+	wa.Ignore(output) // prevent endless loop
 	wa.AddFilterHook(func(info os.FileInfo, fullPath string) error {
+		for _, dir := range dirsToIgnore {
+			if fullPath == dir {
+				return filepath.SkipDir
+			}
+		}
 		if strings.HasSuffix(fullPath, ".go") || strings.HasSuffix(fullPath, ".mod") {
 			return nil
 		}
-		return watcher.ErrSkip
+		return watcher.ErrSkip // stop processing
 	})
 	if err := wa.AddRecursive(directory); err != nil {
 		return err
@@ -230,4 +251,35 @@ func isVersionElement(s string) bool {
 		}
 	}
 	return true
+}
+
+func appendStringIfMissing(slice []string, element string) []string {
+	for _, e := range slice {
+		if e == element {
+			return slice
+		}
+	}
+	return append(slice, element)
+}
+
+func dirsWithName(root string, names ...string) (dirs []string) {
+	if len(names) == 0 {
+		return
+	}
+	filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		for _, name := range names {
+			if d.Name() == name {
+				dirs = append(dirs, path)
+				return filepath.SkipDir
+			}
+		}
+		return nil
+	})
+	return
 }
