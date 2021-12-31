@@ -22,8 +22,13 @@ go install -v github.com/gopsql/watch/gow@latest
 Run:
 
 ```
+# this watches all go files in current directory:
 gow
 
-# with extra go build arguments:
+# gow by default ignores node_modules, .git, dist,
+# to ignore extra directory names:
+gow -ignore vendor -ignore another-dir
+
+# to add extra go build arguments:
 gow -- -v -race -o another-name
 ```
