@@ -40,6 +40,7 @@ func main() {
 
 	watch.NewWatch().
 		WithOutput(output).
+		WithGoPath(goPath).
 		WithGoBuildArgs(goBuildArgs...).
 		WithLogger(logger.StandardLogger).
 		WithRebuildKey(rebuildKey).
