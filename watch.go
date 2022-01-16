@@ -27,13 +27,15 @@ var (
 
 type watch struct {
 	goPath      string        // defaults to "go"
-	goBuildArgs []string      // extra arguments to go build
+	goBuildArgs []string      // extra arguments to go build or go test
+	isTest      bool          // true to run go test instead of go build
 	logger      logger.Logger // no logger by default
-	ignoreDirs  []string
-	rebuildKey  byte
+	ignoreDirs  []string      // list of directories not to watch
+	rebuildKey  byte          // key to enter to run go build or go test again
 
-	directory string
-	output    string
+	workingDir string // working directory for commands
+	directory  string // directory to watch
+	output     string // path to output file
 }
 
 // NewWatch creates new watch instance, watches go files recursively in current
@@ -52,6 +54,12 @@ func (w *watch) IgnoreDirectory(dirs ...string) *watch {
 		}
 		w.ignoreDirs = appendStringIfMissing(w.ignoreDirs, dir)
 	}
+	return w
+}
+
+// Set to true to run "go test" instead of "go build".
+func (w *watch) SetTest(isTest bool) *watch {
+	w.isTest = isTest
 	return w
 }
 
@@ -77,6 +85,13 @@ func (w *watch) WithGoPath(path string) *watch {
 // WithGoBuildArgs sets extra command line arguments of go build.
 func (w *watch) WithGoBuildArgs(args ...string) *watch {
 	w.goBuildArgs = args
+	return w
+}
+
+// ChangeDirectory changes the working directory of commands. Default is
+// current process's current directory.
+func (w *watch) ChangeDirectory(dir string) *watch {
+	w.workingDir = dir
 	return w
 }
 
@@ -118,16 +133,21 @@ func (w *watch) Do() error {
 	}
 
 	app := newRunner(output)
-	app.SetDir(filepath.Dir(output))
+	app.SetDir(w.workingDir)
 	app.SetWriter(os.Stdout)
 
 	goPath := w.goPath
 	if goPath == "" {
 		goPath = "go"
 	}
-	args := append([]string{"build", "-o", output}, w.goBuildArgs...)
+	var args []string
+	if w.isTest {
+		args = append([]string{"test"}, w.goBuildArgs...)
+	} else {
+		args = append([]string{"build", "-o", output}, w.goBuildArgs...)
+	}
 	build := newRunner(goPath, args...)
-	build.SetDir(filepath.Dir(output))
+	build.SetDir(w.workingDir)
 	build.SetWriter(os.Stdout)
 
 	tidy := newRunner(goPath, "mod", "tidy")
@@ -159,7 +179,13 @@ func (w *watch) Do() error {
 
 	if w.rebuildKey > 0 {
 		if w.logger != nil {
-			w.logger.Info("Enter", logger.CyanString([]byte{w.rebuildKey}), "to rebuild")
+			var action string
+			if w.isTest {
+				action = "to retest"
+			} else {
+				action = "to rebuild"
+			}
+			w.logger.Info("Enter", logger.CyanString([]byte{w.rebuildKey}), action)
 		}
 		go func() {
 			scanner := bufio.NewScanner(os.Stdin)
@@ -216,15 +242,27 @@ func (w *watch) Do() error {
 			}
 			app.Kill()
 			if w.logger != nil {
-				w.logger.Info(logger.CyanString("Building..."))
+				if w.isTest {
+					w.logger.Info(logger.CyanString("Testing..."))
+				} else {
+					w.logger.Info(logger.CyanString("Building..."))
+				}
 			}
 			begin := time.Now()
 			if build.Run(true) == nil {
 				spent := time.Now().Sub(begin).Truncate(time.Millisecond)
 				if w.logger != nil {
-					w.logger.Info(logger.GreenBoldString(fmt.Sprintf("Build finished (%s)", spent)))
+					var action string
+					if w.isTest {
+						action = "Test"
+					} else {
+						action = "Build"
+					}
+					w.logger.Info(logger.GreenBoldString(fmt.Sprintf("%s finished (%s)", action, spent)))
 				}
-				app.Run(false)
+				if w.isTest == false {
+					app.Run(false)
+				}
 			}
 		case err := <-wa.Error:
 			return err

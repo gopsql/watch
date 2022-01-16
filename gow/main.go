@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -24,15 +23,19 @@ func (s *list) Set(value string) error {
 
 func main() {
 	var goPath string
+	var isTest bool
+	var changeDir string
 	var rebuildKeyStr string
 	ignore := list{"node_modules", ".git", "dist"}
 
 	flag.StringVar(&goPath, "go", "", "path to the go executable")
+	flag.BoolVar(&isTest, "test", false, "run go test instead of go build")
+	flag.StringVar(&changeDir, "cd", "", "set working directory of commands")
 	flag.StringVar(&rebuildKeyStr, "rebuild-key", "r", "key to rebuild")
 	flag.Var(&ignore, "ignore", "add extra directory name to ignore")
 	flag.Usage = func() {
 		o := flag.CommandLine.Output()
-		fmt.Fprintln(o, "Usage:", os.Args[0], "[options] -- [go build args]")
+		fmt.Fprintln(o, "Usage:", os.Args[0], "[options] -- [go build/test args]")
 		fmt.Fprintln(o)
 		fmt.Fprintln(o, "Options:")
 		flag.PrintDefaults()
@@ -47,13 +50,17 @@ func main() {
 	goBuildArgs := flag.Args()
 
 	var output string
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	fs.StringVar(&output, "o", "", "")
-	fs.Parse(goBuildArgs)
+	for i := len(goBuildArgs) - 2; i > -1; i-- {
+		if goBuildArgs[i] == "-o" || goBuildArgs[i] == "--o" {
+			output = goBuildArgs[i+1]
+			break
+		}
+	}
 
 	watch.NewWatch().
 		IgnoreDirectory(ignore...).
+		SetTest(isTest).
+		ChangeDirectory(changeDir).
 		WithOutput(output).
 		WithGoPath(goPath).
 		WithGoBuildArgs(goBuildArgs...).
