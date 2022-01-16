@@ -29,6 +29,7 @@ type watch struct {
 	goPath      string        // defaults to "go"
 	goBuildArgs []string      // extra arguments to go build or go test
 	isTest      bool          // true to run go test instead of go build
+	cleanFirst  bool          // run go clean command before go build or go test
 	logger      logger.Logger // no logger by default
 	ignoreDirs  []string      // list of directories not to watch
 	rebuildKey  byte          // key to enter to run go build or go test again
@@ -60,6 +61,12 @@ func (w *watch) IgnoreDirectory(dirs ...string) *watch {
 // Set to true to run "go test" instead of "go build".
 func (w *watch) SetTest(isTest bool) *watch {
 	w.isTest = isTest
+	return w
+}
+
+// Set to true to run "go clean" before go build or go test.
+func (w *watch) SetClean(clean bool) *watch {
+	w.cleanFirst = clean
 	return w
 }
 
@@ -140,6 +147,17 @@ func (w *watch) Do() error {
 	if goPath == "" {
 		goPath = "go"
 	}
+
+	var cleanArgs []string
+	if w.isTest {
+		cleanArgs = []string{"clean", "-testcache"}
+	} else {
+		cleanArgs = []string{"clean", "-cache"}
+	}
+	clean := newRunner(goPath, cleanArgs...)
+	clean.SetDir(w.workingDir)
+	clean.SetWriter(os.Stdout)
+
 	var args []string
 	if w.isTest {
 		args = append([]string{"test"}, w.goBuildArgs...)
@@ -241,6 +259,10 @@ func (w *watch) Do() error {
 				modFileTime[event.Path] = after.ModTime()
 			}
 			app.Kill()
+			if w.cleanFirst {
+				w.logger.Info(logger.CyanString("Cleaning..."))
+				clean.Run(true)
+			}
 			if w.logger != nil {
 				if w.isTest {
 					w.logger.Info(logger.CyanString("Testing..."))
