@@ -1,7 +1,6 @@
 # watch
 
-Watch .go and .mod files, run `go build` command and the newly built executable
-if these files changed.
+Watch .go and .mod files, run `go build` or `go test` command if these files changed.
 
 ```go
 import "github.com/gopsql/logger"
@@ -31,4 +30,7 @@ gow -ignore vendor -ignore another-dir
 
 # to add extra go build arguments:
 gow -- -v -race -o another-name
+
+# clean test cache before running "go test -v ./..." in "tests" directory
+gow -cd tests -test -clean -- -v ./...
 ```
