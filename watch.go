@@ -31,6 +31,7 @@ type watch struct {
 	isTest      bool          // true to run go test instead of go build
 	cleanFirst  bool          // run go clean command before go build or go test
 	logger      logger.Logger // no logger by default
+	extsToWatch []string      // file extensions / suffix to watch
 	ignoreDirs  []string      // list of directories not to watch
 	rebuildKey  byte          // key to enter to run go build or go test again
 
@@ -43,7 +44,9 @@ type watch struct {
 // directory. If any .go and .mod files changed, executes the go build command
 // and then the newly built executable.
 func NewWatch() *watch {
-	return &watch{}
+	return &watch{
+		extsToWatch: []string{".go", ".mod"},
+	}
 }
 
 // IgnoreDirectory adds directory name to directory ignore list. Ignore
@@ -92,6 +95,13 @@ func (w *watch) WithGoPath(path string) *watch {
 // WithGoBuildArgs sets extra command line arguments of go build.
 func (w *watch) WithGoBuildArgs(args ...string) *watch {
 	w.goBuildArgs = args
+	return w
+}
+
+// WithFileExts sets file extensions or suffixes to watch. Default is .go and
+// .mod.
+func (w *watch) WithFileExts(exts ...string) *watch {
+	w.extsToWatch = exts
 	return w
 }
 
@@ -182,7 +192,7 @@ func (w *watch) Do() error {
 				return filepath.SkipDir
 			}
 		}
-		if strings.HasSuffix(fullPath, ".go") || strings.HasSuffix(fullPath, ".mod") {
+		if w.isWatchable(fullPath) {
 			return nil
 		}
 		return watcher.ErrSkip // stop processing
@@ -293,6 +303,15 @@ func (w *watch) Do() error {
 		}
 	}
 	return nil
+}
+
+func (w *watch) isWatchable(path string) bool {
+	for _, ext := range w.extsToWatch {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
 }
 
 func defaultExecName(p string) string {

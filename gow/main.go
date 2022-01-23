@@ -28,6 +28,7 @@ func main() {
 	var changeDir string
 	var rebuildKeyStr string
 	ignore := list{"node_modules", ".git", "dist"}
+	exts := list{".go", ".mod"}
 
 	flag.StringVar(&goPath, "go", "", "path to the go executable")
 	flag.BoolVar(&isTest, "test", false, "run go test instead of go build")
@@ -35,6 +36,7 @@ func main() {
 	flag.StringVar(&changeDir, "cd", "", "set working directory of commands")
 	flag.StringVar(&rebuildKeyStr, "rebuild-key", "r", "key to rebuild")
 	flag.Var(&ignore, "ignore", "add extra directory name to ignore")
+	flag.Var(&exts, "ext", "add extra file extensions to watch")
 	flag.Usage = func() {
 		o := flag.CommandLine.Output()
 		fmt.Fprintln(o, "Usage:", os.Args[0], "[options] -- [go build/test args]")
@@ -69,5 +71,6 @@ func main() {
 		WithGoBuildArgs(goBuildArgs...).
 		WithLogger(logger.StandardLogger).
 		WithRebuildKey(rebuildKey).
+		WithFileExts(exts...).
 		MustDo()
 }
