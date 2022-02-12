@@ -39,7 +39,7 @@ func main() {
 	flag.Var(&exts, "ext", "add extra file extensions to watch")
 	flag.Usage = func() {
 		o := flag.CommandLine.Output()
-		fmt.Fprintln(o, "Usage:", os.Args[0], "[options] -- [go build/test args]")
+		fmt.Fprintln(o, "Usage:", os.Args[0], "[options] -- [go build/test args] -- [app run args]")
 		fmt.Fprintln(o)
 		fmt.Fprintln(o, "Options:")
 		flag.PrintDefaults()
@@ -51,7 +51,23 @@ func main() {
 		rebuildKey = rebuildKeyStr[0]
 	}
 
-	goBuildArgs := flag.Args()
+	var goBuildArgs []string
+	var appRunArgs []string
+
+	restArgs := flag.Args()
+	argParts := 0
+	for _, arg := range restArgs {
+		if arg == "--" {
+			argParts += 1
+			continue
+		}
+		switch argParts {
+		case 0:
+			goBuildArgs = append(goBuildArgs, arg)
+		case 1:
+			appRunArgs = append(appRunArgs, arg)
+		}
+	}
 
 	var output string
 	for i := len(goBuildArgs) - 2; i > -1; i-- {
@@ -69,6 +85,7 @@ func main() {
 		WithOutput(output).
 		WithGoPath(goPath).
 		WithGoBuildArgs(goBuildArgs...).
+		WithAppRunArgs(appRunArgs...).
 		WithLogger(logger.StandardLogger).
 		WithRebuildKey(rebuildKey).
 		WithFileExts(exts...).

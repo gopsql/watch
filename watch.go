@@ -26,6 +26,7 @@ var (
 )
 
 type watch struct {
+	appRunArgs  []string      // extra arguemnts to run the app
 	goPath      string        // defaults to "go"
 	goBuildArgs []string      // extra arguments to go build or go test
 	isTest      bool          // true to run go test instead of go build
@@ -83,6 +84,12 @@ func (w *watch) InDirectory(directory string) *watch {
 // of current directory.
 func (w *watch) WithOutput(output string) *watch {
 	w.output = output
+	return w
+}
+
+// WithAppRunArgs sets extra command line arguments of app.
+func (w *watch) WithAppRunArgs(args ...string) *watch {
+	w.appRunArgs = args
 	return w
 }
 
@@ -149,7 +156,7 @@ func (w *watch) Do() error {
 		return err
 	}
 
-	app := newRunner(output)
+	app := newRunner(output, w.appRunArgs...)
 	app.SetDir(w.workingDir)
 	app.SetWriter(os.Stdout)
 

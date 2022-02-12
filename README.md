@@ -31,6 +31,9 @@ gow -ignore vendor -ignore another-dir
 # to add extra go build arguments:
 gow -- -v -race -o another-name
 
+# to add extra app run arguments:
+gow -- -v -race -o another-name -- --my-app-customer-flag
+
 # clean test cache before running "go test -v ./..." in "tests" directory
 gow -cd tests -test -clean -- -v ./...
 ```
