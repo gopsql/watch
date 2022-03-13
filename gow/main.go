@@ -23,6 +23,7 @@ func (s *list) Set(value string) error {
 
 func main() {
 	var goPath string
+	var noRun bool
 	var isTest bool
 	var goClean bool
 	var changeDir string
@@ -31,6 +32,7 @@ func main() {
 	exts := list{".go", ".mod"}
 
 	flag.StringVar(&goPath, "go", "", "path to the go executable")
+	flag.BoolVar(&noRun, "no-run", false, "do not run the executable after go build")
 	flag.BoolVar(&isTest, "test", false, "run go test instead of go build")
 	flag.BoolVar(&goClean, "clean", false, "run go clean -cache or -testcache (if -test) first")
 	flag.StringVar(&changeDir, "cd", "", "set working directory of commands")
@@ -79,6 +81,7 @@ func main() {
 
 	watch.NewWatch().
 		IgnoreDirectory(ignore...).
+		SetNoRun(noRun).
 		SetTest(isTest).
 		SetClean(goClean).
 		ChangeDirectory(changeDir).

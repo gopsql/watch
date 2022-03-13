@@ -29,6 +29,7 @@ type watch struct {
 	appRunArgs  []string      // extra arguemnts to run the app
 	goPath      string        // defaults to "go"
 	goBuildArgs []string      // extra arguments to go build or go test
+	noRun       bool          // true to not run executable after go build
 	isTest      bool          // true to run go test instead of go build
 	cleanFirst  bool          // run go clean command before go build or go test
 	logger      logger.Logger // no logger by default
@@ -59,6 +60,12 @@ func (w *watch) IgnoreDirectory(dirs ...string) *watch {
 		}
 		w.ignoreDirs = appendStringIfMissing(w.ignoreDirs, dir)
 	}
+	return w
+}
+
+// Set to true to not run executable after go build.
+func (w *watch) SetNoRun(noRun bool) *watch {
+	w.noRun = noRun
 	return w
 }
 
@@ -299,7 +306,7 @@ func (w *watch) Do() error {
 					}
 					w.logger.Info(logger.GreenBoldString(fmt.Sprintf("%s finished (%s)", action, spent)))
 				}
-				if w.isTest == false {
+				if w.isTest == false && w.noRun == false {
 					app.Run(false)
 				}
 			}
