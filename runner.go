@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -137,4 +138,14 @@ func (r *runner) needsRefresh() bool {
 	} else {
 		return info.ModTime().After(r.starttime)
 	}
+}
+
+func (r *runner) String() string {
+	b := new(strings.Builder)
+	b.WriteString(r.bin)
+	for _, a := range r.args {
+		b.WriteByte(' ')
+		b.WriteString(a)
+	}
+	return b.String()
 }

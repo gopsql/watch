@@ -31,6 +31,7 @@ type watch struct {
 	goBuildArgs []string      // extra arguments to go build or go test
 	noRun       bool          // true to not run executable after go build
 	isTest      bool          // true to run go test instead of go build
+	prebuild    []string      // extra command to run before go build or go test
 	cleanFirst  bool          // run go clean command before go build or go test
 	logger      logger.Logger // no logger by default
 	extsToWatch []string      // file extensions / suffix to watch
@@ -40,6 +41,8 @@ type watch struct {
 	workingDir string // working directory for commands
 	directory  string // directory to watch
 	output     string // path to output file
+
+	lastPrebuildAt *time.Time // skip next run first
 }
 
 // NewWatch creates new watch instance, watches go files recursively in current
@@ -72,6 +75,12 @@ func (w *watch) SetNoRun(noRun bool) *watch {
 // Set to true to run "go test" instead of "go build".
 func (w *watch) SetTest(isTest bool) *watch {
 	w.isTest = isTest
+	return w
+}
+
+// Set extra command to run before go build or go test.
+func (w *watch) SetPrebuild(args ...string) *watch {
+	w.prebuild = args
 	return w
 }
 
@@ -172,6 +181,13 @@ func (w *watch) Do() error {
 		goPath = "go"
 	}
 
+	var prebuild *runner
+	if len(w.prebuild) > 0 {
+		prebuild = newRunner(w.prebuild[0], w.prebuild[1:]...)
+		prebuild.SetDir(w.workingDir)
+		prebuild.SetWriter(os.Stdout)
+	}
+
 	var cleanArgs []string
 	if w.isTest {
 		cleanArgs = []string{"clean", "-testcache"}
@@ -252,6 +268,14 @@ func (w *watch) Do() error {
 	for {
 		select {
 		case event := <-wa.Event:
+			if w.lastPrebuildAt != nil {
+				skip := w.lastPrebuildAt.After(event.FileInfo.ModTime())
+				w.lastPrebuildAt = nil
+				if skip {
+					continue
+				}
+			}
+
 			if w.logger != nil && (event.Path != "" && event.Path != "-") {
 				base, _ := filepath.Abs(".")
 				oldPath, _ := filepath.Rel(base, event.OldPath)
@@ -283,8 +307,18 @@ func (w *watch) Do() error {
 				modFileTime[event.Path] = after.ModTime()
 			}
 			app.Kill()
+			if prebuild != nil {
+				if w.logger != nil {
+					w.logger.Info(logger.CyanString("Running:"), prebuild.String())
+				}
+				prebuild.Run(true)
+				t := time.Now()
+				w.lastPrebuildAt = &t
+			}
 			if w.cleanFirst {
-				w.logger.Info(logger.CyanString("Cleaning..."))
+				if w.logger != nil {
+					w.logger.Info(logger.CyanString("Cleaning..."))
+				}
 				clean.Run(true)
 			}
 			if w.logger != nil {
