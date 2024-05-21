@@ -1,7 +1,7 @@
 github.com/gopsql/logger v1.0.0 h1:21Sv0ut7G5Jl3tNOtYe5dfULZ6pnMbT/tDRDjYR3xC4=
 github.com/gopsql/logger v1.0.0/go.mod h1:GLePobhbDvK9bVbciLfapWQh0g52Ph7n1NfOCWK8zoc=
-github.com/gopsql/watch v1.2.1 h1:ByZKUWW/XnWayAAGeMnmiDeUZHgGx9sLyo1fm/y0p8U=
-github.com/gopsql/watch v1.2.1/go.mod h1:YVUjzc8h2dFIIj+tD2HSObjxEiztEgUrI65u8VdODzk=
+github.com/gopsql/watch v1.2.2 h1:B36ymgJ+ab7i/o1ZNj9aLn4XxWCDI7aeZAOy6APpEyc=
+github.com/gopsql/watch v1.2.2/go.mod h1:YVUjzc8h2dFIIj+tD2HSObjxEiztEgUrI65u8VdODzk=
 github.com/mattn/go-shellwords v1.0.12 h1:M2zGm7EW6UQJvDeQxo4T51eKPurbeFbe8WtebGE2xrk=
 github.com/mattn/go-shellwords v1.0.12/go.mod h1:EZzvwXDESEeg03EKmM+RmDnNOPKG4lLtQsUlTZDWQ8Y=
 github.com/radovskyb/watcher v1.0.7 h1:AYePLih6dpmS32vlHfhCeli8127LzkIgwJGcwwe8tUE=
