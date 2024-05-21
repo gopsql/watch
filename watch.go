@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -163,9 +165,25 @@ func (w *watch) Do() error {
 		return err
 	}
 
+	goPath := w.goPath
+	if goPath == "" {
+		goPath = "go"
+	}
+
 	output := w.output
 	if output == "" {
-		output = defaultExecName(directory)
+		var path string
+		goListM := exec.Command(goPath, "list", "-m")
+		goListM.Dir = w.workingDir
+		if output, err := goListM.Output(); err == nil {
+			if name := strings.TrimSpace(string(output)); name != "" {
+				path = name
+			}
+		}
+		if path == "" {
+			path = directory
+		}
+		output = defaultExecName(path)
 	}
 	output, err = filepath.Abs(output)
 	if err != nil {
@@ -175,11 +193,6 @@ func (w *watch) Do() error {
 	app := newRunner(output, w.appRunArgs...)
 	app.SetDir(w.workingDir)
 	app.SetWriter(os.Stdout)
-
-	goPath := w.goPath
-	if goPath == "" {
-		goPath = "go"
-	}
 
 	var prebuild *runner
 	if len(w.prebuild) > 0 {
@@ -366,6 +379,9 @@ func defaultExecName(p string) string {
 	_, elem := path.Split(p)
 	if isVersionElement(elem) {
 		_, elem = path.Split(path.Dir(p))
+	}
+	if runtime.GOOS == "windows" {
+		return elem + ".exe"
 	}
 	return elem
 }
